@@ -12,7 +12,7 @@ FROM python:3.12-slim-bookworm AS builder
 
 ARG NODE_MAJOR=22
 ARG APT_MIRROR
-ARG UV_INDEX_URL
+ARG UV_INDEX_URL=https://pypi.mirrors.ustc.edu.cn/simple
 # Optional extras to install (e.g. "postgres" for PostgreSQL support)
 # Usage: docker build --build-arg UV_EXTRAS=postgres ...
 ARG UV_EXTRAS
