@@ -269,18 +269,24 @@ class AioSandboxProvider(SandboxProvider):
         Creates directories if they don't exist (lazy initialization).
         Mount sources use host_base_dir so that when running inside Docker with a
         mounted Docker socket (DooD), the host Docker daemon can resolve the paths.
+
+        For multi-tenant API requests, tenant_id is automatically resolved from
+        the tenant context (set by ApiKeyAuthMiddleware).
         """
+        from deerflow.runtime.tenant_context import get_effective_tenant_id
+
         paths = get_paths()
         user_id = get_effective_user_id()
-        paths.ensure_thread_dirs(thread_id, user_id=user_id)
+        tenant_id = get_effective_tenant_id()
+        paths.ensure_thread_dirs(thread_id, user_id=user_id, tenant_id=tenant_id)
 
         return [
-            (paths.host_sandbox_work_dir(thread_id, user_id=user_id), f"{VIRTUAL_PATH_PREFIX}/workspace", False),
-            (paths.host_sandbox_uploads_dir(thread_id, user_id=user_id), f"{VIRTUAL_PATH_PREFIX}/uploads", False),
-            (paths.host_sandbox_outputs_dir(thread_id, user_id=user_id), f"{VIRTUAL_PATH_PREFIX}/outputs", False),
+            (paths.host_sandbox_work_dir(thread_id, user_id=user_id, tenant_id=tenant_id), f"{VIRTUAL_PATH_PREFIX}/workspace", False),
+            (paths.host_sandbox_uploads_dir(thread_id, user_id=user_id, tenant_id=tenant_id), f"{VIRTUAL_PATH_PREFIX}/uploads", False),
+            (paths.host_sandbox_outputs_dir(thread_id, user_id=user_id, tenant_id=tenant_id), f"{VIRTUAL_PATH_PREFIX}/outputs", False),
             # ACP workspace: read-only inside the sandbox (lead agent reads results;
             # the ACP subprocess writes from the host side, not from within the container).
-            (paths.host_acp_workspace_dir(thread_id, user_id=user_id), "/mnt/acp-workspace", True),
+            (paths.host_acp_workspace_dir(thread_id, user_id=user_id, tenant_id=tenant_id), "/mnt/acp-workspace", True),
         ]
 
     @staticmethod

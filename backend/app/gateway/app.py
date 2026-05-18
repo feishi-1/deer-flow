@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.gateway.api_auth.middleware import ApiKeyAuthMiddleware
 from app.gateway.auth_middleware import AuthMiddleware
 from app.gateway.config import get_gateway_config
 from app.gateway.csrf_middleware import CSRFMiddleware, get_configured_cors_origins
 from app.gateway.deps import langgraph_runtime
+from app.gateway.openai_compat.router import router as openai_compat_router
+from app.gateway.rate_limit.middleware import RateLimitMiddleware
 from app.gateway.routers import (
     agents,
     artifacts,
@@ -304,6 +307,12 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
         ],
     )
 
+    # API Key Auth: authenticate /v1/* requests via Bearer token (before AuthMiddleware)
+    app.add_middleware(ApiKeyAuthMiddleware)
+
+    # Rate Limit: enforce per-tenant RPM/TPM limits on /v1/* (after ApiKeyAuth)
+    app.add_middleware(RateLimitMiddleware)
+
     # Auth: reject unauthenticated requests to non-public paths (fail-closed safety net)
     app.add_middleware(AuthMiddleware)
 
@@ -324,6 +333,9 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
         )
 
     # Include routers
+    # OpenAI-compatible API is mounted at /v1
+    app.include_router(openai_compat_router)
+
     # Models API is mounted at /api/models
     app.include_router(models.router)
 

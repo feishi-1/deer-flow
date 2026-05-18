@@ -123,6 +123,20 @@ get_feedback_repo: Callable[[Request], FeedbackRepository] = _require("feedback_
 get_run_store: Callable[[Request], RunStore] = _require("run_store", "Run store")
 
 
+def get_session_factory(request: Request):
+    """Return the shared async session factory from the persistence engine.
+
+    Used by API key middleware and other components that need direct
+    database access outside the standard repository singletons.
+    """
+    from deerflow.persistence.engine import get_session_factory as _get_sf
+
+    sf = _get_sf()
+    if sf is None:
+        raise HTTPException(status_code=503, detail="Database not available")
+    return sf
+
+
 def get_store(request: Request):
     """Return the global store (may be ``None`` if not configured)."""
     return getattr(request.app.state, "store", None)

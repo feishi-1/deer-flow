@@ -27,6 +27,7 @@ _PUBLIC_PATH_PREFIXES: tuple[str, ...] = (
     "/docs",
     "/redoc",
     "/openapi.json",
+    "/v1/",  # Third-party API: authenticated by ApiKeyAuthMiddleware instead
 )
 
 # Exact auth paths that are public (login/register/status check).

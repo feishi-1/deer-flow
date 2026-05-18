@@ -81,16 +81,29 @@ class FileMemoryStorage(MemoryStorage):
         if not AGENT_NAME_PATTERN.match(agent_name):
             raise ValueError(f"Invalid agent name {agent_name!r}: names must match {AGENT_NAME_PATTERN.pattern}")
 
-    def _get_memory_file_path(self, agent_name: str | None = None, *, user_id: str | None = None) -> Path:
-        """Get the path to the memory file."""
+    def _get_memory_file_path(self, agent_name: str | None = None, *, user_id: str | None = None, tenant_id: str | None = None) -> Path:
+        """Get the path to the memory file.
+
+        When tenant_id is provided (multi-tenant API access), paths are
+        scoped under {base_dir}/tenants/{tenant_id}/users/{user_id}/.
+
+        If tenant_id is not explicitly passed, it is resolved from the
+        current tenant context (set by ApiKeyAuthMiddleware for /v1/ requests).
+        """
+        # Auto-resolve tenant_id from context if not explicitly provided
+        if tenant_id is None:
+            from deerflow.runtime.tenant_context import get_effective_tenant_id
+
+            tenant_id = get_effective_tenant_id()
+
         if user_id is not None:
             if agent_name is not None:
                 self._validate_agent_name(agent_name)
-                return get_paths().user_agent_memory_file(user_id, agent_name)
+                return get_paths().user_agent_memory_file(user_id, agent_name, tenant_id=tenant_id)
             config = get_memory_config()
             if config.storage_path and Path(config.storage_path).is_absolute():
                 return Path(config.storage_path)
-            return get_paths().user_memory_file(user_id)
+            return get_paths().user_memory_file(user_id, tenant_id=tenant_id)
         # Legacy: no user_id
         if agent_name is not None:
             self._validate_agent_name(agent_name)
