@@ -77,7 +77,7 @@ async def list_skills(request: Request):
         return _make_error(401, "Authentication required", "invalid_api_key")
 
     from app.gateway.deps import get_config
-    from deerflow.skills.loader import get_or_new_skill_storage
+    from deerflow.skills import get_or_new_skill_storage
 
     config = get_config(request)
     skills_list = []
