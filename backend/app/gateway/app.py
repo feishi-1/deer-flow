@@ -311,14 +311,19 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
         ],
     )
 
-    # API Key Auth: authenticate /v1/* requests via Bearer token (before AuthMiddleware)
-    app.add_middleware(ApiKeyAuthMiddleware)
+    # Middleware execution order (Starlette executes last-added first):
+    # CORS → CSRF → AuthMiddleware → ApiKeyAuth → RateLimit → Quota → route handler
+    #
+    # For /v1/* requests: ApiKeyAuth sets tenant context, then RateLimit/Quota check it.
 
-    # Rate Limit: enforce per-tenant RPM/TPM limits on /v1/* (after ApiKeyAuth)
+    # Quota: enforce monthly token/request quotas on /v1/* (needs tenant context)
+    app.add_middleware(QuotaMiddleware)
+
+    # Rate Limit: enforce per-tenant RPM/TPM limits on /v1/* (needs tenant context)
     app.add_middleware(RateLimitMiddleware)
 
-    # Quota: enforce monthly token/request quotas on /v1/* (after RateLimit)
-    app.add_middleware(QuotaMiddleware)
+    # API Key Auth: authenticate /v1/* requests via Bearer token (sets tenant context)
+    app.add_middleware(ApiKeyAuthMiddleware)
 
     # Auth: reject unauthenticated requests to non-public paths (fail-closed safety net)
     app.add_middleware(AuthMiddleware)
