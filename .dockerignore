@@ -52,6 +52,8 @@ examples/
 assets/
 tests/
 *.log
+backend/.deer-flow/
+.deer-flow/
 
 # Exclude directories not needed in Docker context
 # Frontend build only needs frontend/

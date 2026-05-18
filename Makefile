@@ -174,6 +174,14 @@ docker-logs-gateway:
 # Production Docker Commands
 # ==========================================
 
+# Build images only (no start)
+build:
+	@$(RUN_WITH_GIT_BASH) ./scripts/deploy.sh build
+
+# Start from pre-built images (fast)
+start:
+	@$(RUN_WITH_GIT_BASH) ./scripts/deploy.sh start
+
 # Build and start production services
 up:
 	@$(RUN_WITH_GIT_BASH) ./scripts/deploy.sh
