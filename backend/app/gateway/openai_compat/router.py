@@ -286,8 +286,20 @@ async def list_models(request: Request):
             model_name = getattr(model_cfg, "name", None) or getattr(model_cfg, "model", None)
             if model_name:
                 # Filter by tenant's allowed models
-                if tenant.allowed_models and model_name not in tenant.allowed_models:
+                allowed_models_list = tenant.allowed_models if tenant.allowed_models else None
+                if allowed_models_list and model_name not in allowed_models_list:
                     continue
+                model_list.append(ModelInfo(id=model_name))
+    else:
+        # Fallback: if no models configured, return tenant's allowed models
+        # or a default list if tenant has no restrictions
+        if tenant.allowed_models:
+            for model_name in tenant.allowed_models:
+                model_list.append(ModelInfo(id=model_name))
+        else:
+            # Default models when no config and no tenant restrictions
+            default_models = ["gpt-4", "gpt-4o", "claude-3-5-sonnet"]
+            for model_name in default_models:
                 model_list.append(ModelInfo(id=model_name))
 
     response = ModelsListResponse(data=model_list)
