@@ -12,6 +12,7 @@ from app.gateway.config import get_gateway_config
 from app.gateway.csrf_middleware import CSRFMiddleware, get_configured_cors_origins
 from app.gateway.deps import langgraph_runtime
 from app.gateway.openai_compat.router import router as openai_compat_router
+from app.gateway.quota.middleware import QuotaMiddleware
 from app.gateway.rate_limit.middleware import RateLimitMiddleware
 from app.gateway.routers import (
     agents,
@@ -312,6 +313,9 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
 
     # Rate Limit: enforce per-tenant RPM/TPM limits on /v1/* (after ApiKeyAuth)
     app.add_middleware(RateLimitMiddleware)
+
+    # Quota: enforce monthly token/request quotas on /v1/* (after RateLimit)
+    app.add_middleware(QuotaMiddleware)
 
     # Auth: reject unauthenticated requests to non-public paths (fail-closed safety net)
     app.add_middleware(AuthMiddleware)

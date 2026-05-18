@@ -255,6 +255,9 @@ async def _handle_non_stream(
     except asyncio.CancelledError:
         return _make_error(500, "Request cancelled", "cancelled")
 
+    # Record usage asynchronously
+    asyncio.create_task(_record_usage_async(request, tenant, model=model, thread_id=thread_id, user_id=run_body.get("metadata", {}).get("user_id")))
+
     # Build response
     response = build_completion_response(
         completion_id=completion_id,
@@ -350,3 +353,44 @@ def _error_chunk_json(completion_id: str, model: str, message: str) -> str:
             "error": {"message": message},
         }
     )
+
+
+async def _record_usage_async(
+    request: Request,
+    tenant: TenantContext,
+    *,
+    model: str,
+    thread_id: str | None = None,
+    user_id: str | None = None,
+) -> None:
+    """Record API usage after request completion (background task).
+
+    Fetches token usage from the run store and records it.
+    """
+    try:
+        from app.gateway.deps import get_session_factory
+        from app.gateway.quota.tracker import record_usage
+        from deerflow.persistence.api_quota import ApiQuotaPeriodRepository
+        from deerflow.persistence.api_usage import ApiUsageRepository
+
+        sf = get_session_factory(request)
+        usage_repo = ApiUsageRepository(sf)
+        quota_repo = ApiQuotaPeriodRepository(sf)
+
+        # TODO: Get actual token counts from run_store
+        # For now, record with placeholder values
+        await record_usage(
+            tenant_id=tenant.tenant_id,
+            usage_repo=usage_repo,
+            quota_repo=quota_repo,
+            user_id=user_id,
+            thread_id=thread_id,
+            model_name=model,
+            prompt_tokens=0,  # TODO: fetch from run
+            completion_tokens=0,  # TODO: fetch from run
+            total_tokens=0,  # TODO: fetch from run
+            endpoint="/v1/chat/completions",
+            status_code=200,
+        )
+    except Exception as e:
+        logger.error(f"Failed to record usage: {e}")
