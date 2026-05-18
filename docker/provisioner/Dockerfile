@@ -1,7 +1,7 @@
 FROM python:3.12-slim-bookworm
 
-ARG APT_MIRROR
-ARG PIP_INDEX_URL
+ARG APT_MIRROR=mirrors.ustc.edu.cn
+ARG PIP_INDEX_URL=https://pypi.mirrors.ustc.edu.cn/simple
 
 # Optionally override apt mirror for restricted networks (e.g. APT_MIRROR=mirrors.aliyun.com)
 RUN if [ -n "${APT_MIRROR}" ]; then \
