@@ -76,19 +76,26 @@ async def list_skills(request: Request):
     except ValueError:
         return _make_error(401, "Authentication required", "invalid_api_key")
 
-    from deerflow.config.skills_config import get_skills_config
+    from app.gateway.deps import get_config
+    from deerflow.skills.loader import get_or_new_skill_storage
 
-    skills_config = get_skills_config()
+    config = get_config(request)
     skills_list = []
 
-    for skill in skills_config.skills:
-        skills_list.append(
-            {
-                "name": skill.name,
-                "description": skill.description or "",
-                "enabled": skill.enabled,
-            }
-        )
+    try:
+        storage = get_or_new_skill_storage(app_config=config)
+        skills = storage.load_skills(enabled_only=False)
+        for skill in skills:
+            skills_list.append(
+                {
+                    "name": getattr(skill, "name", "unknown"),
+                    "description": getattr(skill, "description", "") or "",
+                    "enabled": getattr(skill, "enabled", True),
+                }
+            )
+    except Exception:
+        # Skills may not be configured; return empty list
+        pass
 
     return JSONResponse(content={"skills": skills_list})
 
