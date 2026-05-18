@@ -34,11 +34,18 @@ def should_check_csrf(request: Request) -> bool:
 
     CSRF is checked for state-changing methods (POST, PUT, DELETE, PATCH).
     GET, HEAD, OPTIONS, and TRACE are exempt per RFC 7231.
+
+    Third-party API routes (/v1/*) are exempt because they use Bearer token auth.
     """
     if request.method not in ("POST", "PUT", "DELETE", "PATCH"):
         return False
 
     path = request.url.path.rstrip("/")
+
+    # Exempt third-party API routes (use Bearer token auth instead)
+    if path.startswith("/v1/"):
+        return False
+
     # Exempt /api/v1/auth/me endpoint
     if path == "/api/v1/auth/me":
         return False
