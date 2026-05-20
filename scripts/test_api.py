@@ -131,10 +131,21 @@ class APITester:
             f"Got HTTP {resp.status_code}",
         )
 
+    async def _get_available_model(self) -> str | None:
+        """Fetch the first available model from /v1/models."""
+        resp = await self.client.get(f"{self.base_url}/v1/models", headers=self._headers())
+        if resp.status_code == 200:
+            data = resp.json()
+            models = data.get("data", [])
+            if models:
+                return models[0]["id"]
+        return None
+
     async def test_chat_completions_non_stream(self):
         """POST /v1/chat/completions (non-stream)."""
+        model = await self._get_available_model() or "gpt-4"
         body = {
-            "model": "gpt-4",
+            "model": model,
             "messages": [{"role": "user", "content": "Say hello in one word."}],
             "stream": False,
         }
@@ -161,8 +172,9 @@ class APITester:
 
     async def test_chat_completions_stream(self):
         """POST /v1/chat/completions (stream)."""
+        model = await self._get_available_model() or "gpt-4"
         body = {
-            "model": "gpt-4",
+            "model": model,
             "messages": [{"role": "user", "content": "Say hi."}],
             "stream": True,
         }
