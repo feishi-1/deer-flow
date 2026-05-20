@@ -13,6 +13,8 @@ DeerFlow 提供了完整的第三方 API 接入能力，允许外部应用通过
 - [错误处理](#错误处理)
 - [管理面板](#管理面板)
 - [SDK 示例](#sdk-示例)
+- [最佳实践](#最佳实践)
+- [故障排查](#故障排查)
 
 ---
 
@@ -285,6 +287,131 @@ data: [DONE]
   }
 }
 ```
+
+---
+
+### 6. Files (文件上传)
+
+文件上传 API 允许在对话中附加文件。上传的文件按租户和会话（thread_id）隔离存储。
+
+#### 上传文件
+
+**端点：** `POST /v1/files`
+
+**请求格式：** `multipart/form-data`
+
+**参数：**
+- `file` (必填): 文件内容
+- `purpose` (可选): 用途，默认 `"assistants"`
+- `thread_id` (可选): 关联的会话 ID，不提供则自动生成
+
+**请求示例：**
+
+```bash
+curl -X POST http://localhost:2026/v1/files \
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \
+  -F "file=@report.csv" \
+  -F "purpose=assistants" \
+  -F "thread_id=my-conversation-123"
+```
+
+**响应：**
+
+```json
+{
+  "id": "file-abc123def456789012ab",
+  "object": "file",
+  "bytes": 2048,
+  "created_at": 1705312000,
+  "filename": "report.csv",
+  "purpose": "assistants",
+  "thread_id": "my-conversation-123"
+}
+```
+
+**限制：**
+- 单文件最大 50MB
+- 文件名不能以 `.` 开头
+
+#### 列出文件
+
+**端点：** `GET /v1/files`
+
+**查询参数：**
+- `thread_id` (可选): 按会话过滤
+- `purpose` (可选): 按用途过滤
+
+**响应：**
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "file-abc123def456789012ab",
+      "object": "file",
+      "bytes": 2048,
+      "created_at": 1705312000,
+      "filename": "report.csv",
+      "purpose": "assistants",
+      "thread_id": "my-conversation-123"
+    }
+  ]
+}
+```
+
+#### 获取文件信息
+
+**端点：** `GET /v1/files/{file_id}`
+
+**响应：**
+
+```json
+{
+  "id": "file-abc123def456789012ab",
+  "object": "file",
+  "bytes": 2048,
+  "created_at": 1705312000,
+  "filename": "report.csv",
+  "purpose": "assistants",
+  "thread_id": "my-conversation-123"
+}
+```
+
+#### 删除文件
+
+**端点：** `DELETE /v1/files/{file_id}`
+
+**响应：**
+
+```json
+{
+  "id": "file-abc123def456789012ab",
+  "object": "file",
+  "deleted": true
+}
+```
+
+#### 在对话中引用文件
+
+上传文件后，可以通过 `file_ids` 字段在 `/v1/chat/completions` 的消息中引用：
+
+```json
+{
+  "model": "gpt-4",
+  "messages": [
+    {
+      "role": "user",
+      "content": "请分析这个数据文件",
+      "file_ids": ["file-abc123def456789012ab"]
+    }
+  ]
+}
+```
+
+**文件处理规则：**
+- **文本文件**（.txt, .py, .json, .md, .csv, .yaml 等）：内容自动内联到对话上下文
+- **二进制文件**（.pdf, .png, .zip 等）：以文件名和大小引用传递给模型
 
 ---
 
@@ -636,6 +763,26 @@ response = client.chat.completions.create(
         "thread_id": "my-conversation-123"
     }
 )
+
+# 文件上传并在对话中引用
+file = client.files.create(
+    file=open("data.csv", "rb"),
+    purpose="assistants"
+)
+print(f"Uploaded: {file.id}")
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {
+            "role": "user",
+            "content": "分析这个 CSV 文件的数据",
+            "file_ids": [file.id]
+        }
+    ],
+    extra_body={"thread_id": file.thread_id}
+)
+print(response.choices[0].message.content)
 ```
 
 ### JavaScript/TypeScript
@@ -680,6 +827,25 @@ const response = await client.chat.completions.create({
   skills: ['web_search'],
   thread_id: 'my-conversation-123',
 } as any); // TypeScript 需要类型断言
+
+// 文件上传并在对话中引用
+const file = await client.files.create({
+  file: fs.createReadStream('data.csv'),
+  purpose: 'assistants',
+});
+console.log(`Uploaded: ${file.id}`);
+
+const fileResponse = await client.chat.completions.create({
+  model: 'gpt-4',
+  messages: [
+    {
+      role: 'user',
+      content: '分析这个 CSV 文件',
+      file_ids: [file.id],
+    }
+  ],
+  thread_id: file.thread_id,
+} as any);
 ```
 
 ### cURL
@@ -721,6 +887,37 @@ curl https://your-deerflow-instance.com/v1/chat/completions \
     "skills": ["web_search"],
     "thread_id": "my-conversation-123"
   }'
+
+# 上传文件
+curl -X POST https://your-deerflow-instance.com/v1/files \
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \
+  -F "file=@data.csv" \
+  -F "purpose=assistants" \
+  -F "thread_id=my-conversation-123"
+
+# 在对话中引用文件
+curl https://your-deerflow-instance.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-YOUR_API_KEY" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {
+        "role": "user",
+        "content": "分析这个数据文件",
+        "file_ids": ["file-abc123def456789012ab"]
+      }
+    ],
+    "thread_id": "my-conversation-123"
+  }'
+
+# 列出文件
+curl https://your-deerflow-instance.com/v1/files \
+  -H "Authorization: Bearer sk-YOUR_API_KEY"
+
+# 删除文件
+curl -X DELETE https://your-deerflow-instance.com/v1/files/file-abc123def456789012ab \
+  -H "Authorization: Bearer sk-YOUR_API_KEY"
 ```
 
 ---
@@ -858,7 +1055,14 @@ print(f"Total requests: {usage['total_requests']}")
 - ✨ 管理面板 API
 - ✨ DeerFlow 扩展功能（思维链、技能、沙箱等）
 
+### v1.1.0 (2024-01-20)
+
+- ✨ 新增 Files API（POST/GET/DELETE /v1/files）
+- ✨ 支持在 chat completions 消息中通过 file_ids 引用上传文件
+- ✨ 文本文件自动内联到对话上下文
+- ✨ 文件按租户和会话隔离存储
+
 ---
 
-**文档版本：** v1.0.0  
-**最后更新：** 2024-01-15
+**文档版本：** v1.1.0  
+**最后更新：** 2024-01-20
