@@ -128,12 +128,16 @@ async def _handle_stream(
 ) -> StreamingResponse:
     """Handle streaming chat completion request."""
     from app.gateway.deps import get_stream_bridge
+    from app.gateway.routers.thread_runs import RunCreateRequest
     from app.gateway.services import start_run
 
     bridge = get_stream_bridge(request)
 
+    # Convert dict to RunCreateRequest (start_run expects attribute access)
+    run_request = RunCreateRequest(**run_body)
+
     # Start the run
-    record = await start_run(run_body, thread_id, request)
+    record = await start_run(run_request, thread_id, request)
 
     # Create SSE consumer that converts to OpenAI format
     async def openai_sse_generator():
@@ -216,12 +220,16 @@ async def _handle_non_stream(
 ) -> JSONResponse:
     """Handle non-streaming chat completion request."""
     from app.gateway.deps import get_stream_bridge
+    from app.gateway.routers.thread_runs import RunCreateRequest
     from app.gateway.services import start_run
 
     bridge = get_stream_bridge(request)
 
+    # Convert dict to RunCreateRequest (start_run expects attribute access)
+    run_request = RunCreateRequest(**run_body)
+
     # Start the run
-    record = await start_run(run_body, thread_id, request)
+    record = await start_run(run_request, thread_id, request)
 
     # Wait for completion by consuming all events
     final_content = ""
