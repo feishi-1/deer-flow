@@ -16,12 +16,17 @@ from pydantic import BaseModel
 
 
 class ChatMessage(BaseModel):
-    """A single message in the conversation."""
+    """A single message in the conversation.
+
+    Supports file attachments via file_ids (uploaded via POST /v1/files).
+    Files are injected into the conversation context automatically.
+    """
 
     role: Literal["system", "user", "assistant", "tool"] = "user"
     content: str | list[dict[str, Any]] | None = None
     name: str | None = None
     tool_call_id: str | None = None
+    file_ids: list[str] | None = None
 
 
 class ChatCompletionRequest(BaseModel):

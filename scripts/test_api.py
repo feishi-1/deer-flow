@@ -270,6 +270,61 @@ class APITester:
             f"Headers: {dict((k, v) for k, v in resp.headers.items() if 'ratelimit' in k.lower())}" if has_headers else "No rate limit headers found",
         )
 
+    async def test_file_upload(self):
+        """POST /v1/files - upload a test file."""
+        content = b"Hello, this is a test file for DeerFlow API."
+        resp = await self.client.post(
+            f"{self.base_url}/v1/files",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            files={"file": ("test.txt", content, "text/plain")},
+            data={"purpose": "assistants"},
+        )
+        if resp.status_code == 201:
+            data = resp.json()
+            has_id = "id" in data and data["id"].startswith("file-")
+            self._record(
+                "POST /v1/files (upload)",
+                has_id,
+                f"File ID: {data.get('id')}, size: {data.get('bytes')}",
+            )
+            return data.get("id")
+        else:
+            self._record("POST /v1/files (upload)", False, f"HTTP {resp.status_code}: {resp.text[:200]}")
+            return None
+
+    async def test_file_list(self):
+        """GET /v1/files - list uploaded files."""
+        resp = await self.client.get(f"{self.base_url}/v1/files", headers=self._headers())
+        if resp.status_code == 200:
+            data = resp.json()
+            is_list = data.get("object") == "list" and isinstance(data.get("data"), list)
+            self._record("GET /v1/files (list)", is_list, f"Got {len(data.get('data', []))} files")
+        else:
+            self._record("GET /v1/files (list)", False, f"HTTP {resp.status_code}: {resp.text[:200]}")
+
+    async def test_file_get_and_delete(self, file_id: str | None):
+        """GET and DELETE /v1/files/{file_id}."""
+        if not file_id:
+            self._record("GET /v1/files/{id}", False, "No file_id (upload failed)")
+            self._record("DELETE /v1/files/{id}", False, "No file_id (upload failed)")
+            return
+
+        # Get
+        resp = await self.client.get(f"{self.base_url}/v1/files/{file_id}", headers=self._headers())
+        if resp.status_code == 200:
+            data = resp.json()
+            self._record("GET /v1/files/{id}", data.get("id") == file_id, f"Got: {data.get('filename')}")
+        else:
+            self._record("GET /v1/files/{id}", False, f"HTTP {resp.status_code}")
+
+        # Delete
+        resp = await self.client.delete(f"{self.base_url}/v1/files/{file_id}", headers=self._headers())
+        if resp.status_code == 200:
+            data = resp.json()
+            self._record("DELETE /v1/files/{id}", data.get("deleted") is True, "")
+        else:
+            self._record("DELETE /v1/files/{id}", False, f"HTTP {resp.status_code}")
+
     # -- Runner --
 
     async def run_all(self):
@@ -298,6 +353,11 @@ class APITester:
 
         print("\n[Rate Limiting]")
         await self.test_rate_limit_headers()
+
+        print("\n[Files]")
+        file_id = await self.test_file_upload()
+        await self.test_file_list()
+        await self.test_file_get_and_delete(file_id)
 
         # Summary
         passed = sum(1 for r in self.results if r["passed"])
@@ -370,6 +430,11 @@ async def main():
 
             print("\n[Rate Limiting]")
             await tester.test_rate_limit_headers()
+
+            print("\n[Files]")
+            file_id = await tester.test_file_upload()
+            await tester.test_file_list()
+            await tester.test_file_get_and_delete(file_id)
 
             passed = sum(1 for r in tester.results if r["passed"])
             total = len(tester.results)

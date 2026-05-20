@@ -12,6 +12,7 @@ from app.gateway.config import get_gateway_config
 from app.gateway.csrf_middleware import CSRFMiddleware, get_configured_cors_origins
 from app.gateway.deps import langgraph_runtime
 from app.gateway.openai_compat.extended_router import router as extended_router
+from app.gateway.openai_compat.files_router import router as files_router
 from app.gateway.openai_compat.router import router as openai_compat_router
 from app.gateway.quota.middleware import QuotaMiddleware
 from app.gateway.rate_limit.middleware import RateLimitMiddleware
@@ -347,6 +348,9 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
     # Include routers
     # OpenAI-compatible API is mounted at /v1
     app.include_router(openai_compat_router)
+
+    # Files API (upload/list/delete) is mounted at /v1/files
+    app.include_router(files_router)
 
     # Extended API (memory, skills, usage) is mounted at /v1
     app.include_router(extended_router)

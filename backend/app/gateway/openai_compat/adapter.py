@@ -25,7 +25,70 @@ def generate_completion_id() -> str:
     return f"chatcmpl-{uuid.uuid4().hex[:24]}"
 
 
-def request_to_run_input(request: ChatCompletionRequest) -> dict[str, Any]:
+def _resolve_file_references(file_ids: list[str], tenant_id: str, thread_id: str | None) -> str:
+    """Resolve file_ids to file content/paths and build context string.
+
+    Reads file metadata from the tenant's uploads directory and returns
+    a formatted string describing the attached files.
+    """
+    import json
+    import os
+
+    from deerflow.config.paths import get_paths
+
+    paths = get_paths()
+    base = paths.base_dir
+    tenant_dir = os.path.join(base, "tenants", tenant_id, "threads")
+
+    if not os.path.exists(tenant_dir):
+        return ""
+
+    # Build a lookup of file_id -> metadata
+    file_meta_map: dict[str, dict] = {}
+    thread_dirs = [thread_id] if thread_id else os.listdir(tenant_dir)
+
+    for tid in thread_dirs:
+        uploads_dir = os.path.join(tenant_dir, tid, "uploads")
+        if not os.path.isdir(uploads_dir):
+            continue
+        for entry in os.listdir(uploads_dir):
+            if entry.startswith(".") and entry.endswith(".meta.json"):
+                meta_path = os.path.join(uploads_dir, entry)
+                try:
+                    with open(meta_path) as f:
+                        meta = json.load(f)
+                    file_meta_map[meta["id"]] = {**meta, "_uploads_dir": uploads_dir}
+                except Exception:
+                    continue
+
+    # Resolve requested file_ids
+    parts = []
+    for fid in file_ids:
+        meta = file_meta_map.get(fid)
+        if not meta:
+            continue
+
+        filename = meta["filename"]
+        file_path = os.path.join(meta["_uploads_dir"], filename)
+
+        # For text-based files, include content inline
+        text_extensions = {".txt", ".md", ".py", ".js", ".ts", ".json", ".yaml", ".yml", ".csv", ".xml", ".html", ".css", ".sql", ".sh", ".toml", ".ini", ".cfg", ".log"}
+        ext = os.path.splitext(filename)[1].lower()
+
+        if ext in text_extensions and os.path.exists(file_path):
+            try:
+                with open(file_path, encoding="utf-8", errors="replace") as f:
+                    content = f.read(100_000)  # Cap at 100KB
+                parts.append(f"[Attached file: {filename}]\n```\n{content}\n```")
+            except Exception:
+                parts.append(f"[Attached file: {filename} (unable to read)]")
+        else:
+            parts.append(f"[Attached file: {filename} ({meta['size']} bytes)]")
+
+    return "\n\n".join(parts)
+
+
+def request_to_run_input(request: ChatCompletionRequest, *, tenant_id: str | None = None) -> dict[str, Any]:
     """Convert OpenAI ChatCompletionRequest to DeerFlow run input.
 
     Returns a dict suitable for passing to start_run() as the body.
@@ -36,6 +99,15 @@ def request_to_run_input(request: ChatCompletionRequest) -> dict[str, Any]:
         lc_msg: dict[str, Any] = {"role": msg.role, "content": msg.content or ""}
         if msg.name:
             lc_msg["name"] = msg.name
+
+        # Handle file_ids: resolve file metadata and inject into content
+        if msg.file_ids and tenant_id:
+            file_context = _resolve_file_references(msg.file_ids, tenant_id, request.thread_id)
+            if file_context:
+                # Prepend file context to the message content
+                existing_content = lc_msg["content"]
+                lc_msg["content"] = f"{file_context}\n\n{existing_content}" if existing_content else file_context
+
         messages.append(lc_msg)
 
     # Build DeerFlow context overrides

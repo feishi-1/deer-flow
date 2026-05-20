@@ -74,7 +74,7 @@ async def chat_completions(body: ChatCompletionRequest, request: Request):
     thread_id = body.thread_id or str(uuid.uuid4())
 
     # Convert to DeerFlow run input
-    run_input = request_to_run_input(body)
+    run_input = request_to_run_input(body, tenant_id=tenant.tenant_id)
 
     # Import DeerFlow services
     from app.gateway.deps import get_stream_bridge
