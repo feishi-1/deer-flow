@@ -52,22 +52,33 @@ def _make_error(status_code: int, message: str, error_type: str) -> JSONResponse
 def _get_tenant_uploads_dir(tenant_id: str, thread_id: str) -> str:
     """Get the uploads directory for a tenant's thread.
 
-    Uses the standard DeerFlow sandbox_uploads_dir path so that files
-    are accessible to the agent's uploads_middleware at runtime.
+    Uses the same path resolution as uploads_middleware so the agent
+    can discover files at runtime via /mnt/user-data/uploads/.
 
-    For API (tenant) calls without a logged-in user, files are stored at:
-      {base_dir}/threads/{thread_id}/user-data/uploads/
-    This matches what uploads_middleware resolves when user_id is "default"
-    and no user context is set.
+    For API calls without a logged-in user, effective_user_id is "default",
+    giving path: {base_dir}/users/default/threads/{thread_id}/user-data/uploads/
     """
     from deerflow.config.paths import get_paths
+    from deerflow.runtime.user_context import get_effective_user_id
 
     paths = get_paths()
-    # Use the same path resolution as uploads_middleware:
-    # sandbox_uploads_dir(thread_id, user_id="default") when no user is logged in
-    uploads_dir = paths.sandbox_uploads_dir(thread_id)
+    user_id = get_effective_user_id()
+    uploads_dir = paths.sandbox_uploads_dir(thread_id, user_id=user_id)
     uploads_dir.mkdir(parents=True, exist_ok=True)
     return str(uploads_dir)
+
+
+def _get_threads_base_dir() -> str:
+    """Return the base threads directory where uploads are stored.
+
+    Matches the path used by uploads_middleware: users/default/threads/
+    """
+    from deerflow.config.paths import get_paths
+    from deerflow.runtime.user_context import get_effective_user_id
+
+    paths = get_paths()
+    user_id = get_effective_user_id()
+    return str(paths.base_dir / "users" / user_id / "threads")
 
 
 def _generate_file_id() -> str:
@@ -193,11 +204,7 @@ async def list_files(
 
     import json
 
-    from deerflow.config.paths import get_paths
-
-    paths = get_paths()
-    base = paths.base_dir
-    threads_dir = os.path.join(base, "threads")
+    threads_dir = _get_threads_base_dir()
 
     files_list = []
 
@@ -248,11 +255,7 @@ async def get_file(file_id: str, request: Request):
 
     import json
 
-    from deerflow.config.paths import get_paths
-
-    paths = get_paths()
-    base = paths.base_dir
-    threads_dir = os.path.join(base, "threads")
+    threads_dir = _get_threads_base_dir()
 
     if not os.path.exists(threads_dir):
         return _make_error(404, f"File not found: {file_id}", "not_found")
@@ -294,11 +297,7 @@ async def delete_file(file_id: str, request: Request):
 
     import json
 
-    from deerflow.config.paths import get_paths
-
-    paths = get_paths()
-    base = paths.base_dir
-    threads_dir = os.path.join(base, "threads")
+    threads_dir = _get_threads_base_dir()
 
     if not os.path.exists(threads_dir):
         return _make_error(404, f"File not found: {file_id}", "not_found")

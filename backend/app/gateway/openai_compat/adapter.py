@@ -35,10 +35,11 @@ def _resolve_file_references(file_ids: list[str], tenant_id: str, thread_id: str
     import os
 
     from deerflow.config.paths import get_paths
+    from deerflow.runtime.user_context import get_effective_user_id
 
     paths = get_paths()
-    base = paths.base_dir
-    threads_dir = os.path.join(base, "threads")
+    user_id = get_effective_user_id()
+    threads_dir = os.path.join(str(paths.base_dir), "users", user_id, "threads")
 
     if not os.path.exists(threads_dir):
         return ""
