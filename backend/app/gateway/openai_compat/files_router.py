@@ -50,14 +50,24 @@ def _make_error(status_code: int, message: str, error_type: str) -> JSONResponse
 
 
 def _get_tenant_uploads_dir(tenant_id: str, thread_id: str) -> str:
-    """Get the uploads directory for a tenant's thread."""
+    """Get the uploads directory for a tenant's thread.
+
+    Uses the standard DeerFlow sandbox_uploads_dir path so that files
+    are accessible to the agent's uploads_middleware at runtime.
+
+    For API (tenant) calls without a logged-in user, files are stored at:
+      {base_dir}/threads/{thread_id}/user-data/uploads/
+    This matches what uploads_middleware resolves when user_id is "default"
+    and no user context is set.
+    """
     from deerflow.config.paths import get_paths
 
     paths = get_paths()
-    base = paths.base_dir
-    uploads_dir = os.path.join(base, "tenants", tenant_id, "threads", thread_id, "uploads")
-    os.makedirs(uploads_dir, exist_ok=True)
-    return uploads_dir
+    # Use the same path resolution as uploads_middleware:
+    # sandbox_uploads_dir(thread_id, user_id="default") when no user is logged in
+    uploads_dir = paths.sandbox_uploads_dir(thread_id)
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    return str(uploads_dir)
 
 
 def _generate_file_id() -> str:
@@ -187,18 +197,18 @@ async def list_files(
 
     paths = get_paths()
     base = paths.base_dir
-    tenant_dir = os.path.join(base, "tenants", tenant.tenant_id, "threads")
+    threads_dir = os.path.join(base, "threads")
 
     files_list = []
 
-    if not os.path.exists(tenant_dir):
+    if not os.path.exists(threads_dir):
         return JSONResponse(content={"object": "list", "data": []})
 
     # Scan thread directories
-    thread_dirs = [thread_id] if thread_id else os.listdir(tenant_dir)
+    thread_dirs = [thread_id] if thread_id else os.listdir(threads_dir)
 
     for tid in thread_dirs:
-        uploads_dir = os.path.join(tenant_dir, tid, "uploads")
+        uploads_dir = os.path.join(threads_dir, tid, "user-data", "uploads")
         if not os.path.isdir(uploads_dir):
             continue
 
@@ -208,6 +218,9 @@ async def list_files(
                 try:
                     with open(meta_path) as f:
                         meta = json.load(f)
+                    # Only return files belonging to this tenant
+                    if meta.get("tenant_id") != tenant.tenant_id:
+                        continue
                     if purpose and meta.get("purpose") != purpose:
                         continue
                     file_obj = _build_file_object(
@@ -239,14 +252,14 @@ async def get_file(file_id: str, request: Request):
 
     paths = get_paths()
     base = paths.base_dir
-    tenant_dir = os.path.join(base, "tenants", tenant.tenant_id, "threads")
+    threads_dir = os.path.join(base, "threads")
 
-    if not os.path.exists(tenant_dir):
+    if not os.path.exists(threads_dir):
         return _make_error(404, f"File not found: {file_id}", "not_found")
 
     # Search for the file by ID
-    for tid in os.listdir(tenant_dir):
-        uploads_dir = os.path.join(tenant_dir, tid, "uploads")
+    for tid in os.listdir(threads_dir):
+        uploads_dir = os.path.join(threads_dir, tid, "user-data", "uploads")
         if not os.path.isdir(uploads_dir):
             continue
         for entry in os.listdir(uploads_dir):
@@ -255,7 +268,7 @@ async def get_file(file_id: str, request: Request):
                 try:
                     with open(meta_path) as f:
                         meta = json.load(f)
-                    if meta.get("id") == file_id:
+                    if meta.get("id") == file_id and meta.get("tenant_id") == tenant.tenant_id:
                         file_obj = _build_file_object(
                             meta["id"],
                             meta["filename"],
@@ -285,13 +298,13 @@ async def delete_file(file_id: str, request: Request):
 
     paths = get_paths()
     base = paths.base_dir
-    tenant_dir = os.path.join(base, "tenants", tenant.tenant_id, "threads")
+    threads_dir = os.path.join(base, "threads")
 
-    if not os.path.exists(tenant_dir):
+    if not os.path.exists(threads_dir):
         return _make_error(404, f"File not found: {file_id}", "not_found")
 
-    for tid in os.listdir(tenant_dir):
-        uploads_dir = os.path.join(tenant_dir, tid, "uploads")
+    for tid in os.listdir(threads_dir):
+        uploads_dir = os.path.join(threads_dir, tid, "user-data", "uploads")
         if not os.path.isdir(uploads_dir):
             continue
         for entry in os.listdir(uploads_dir):
@@ -300,8 +313,7 @@ async def delete_file(file_id: str, request: Request):
                 try:
                     with open(meta_path) as f:
                         meta = json.load(f)
-                    if meta.get("id") == file_id:
-                        # Delete the actual file and metadata
+                    if meta.get("id") == file_id and meta.get("tenant_id") == tenant.tenant_id:
                         file_path = os.path.join(uploads_dir, meta["filename"])
                         if os.path.exists(file_path):
                             os.unlink(file_path)

@@ -38,17 +38,17 @@ def _resolve_file_references(file_ids: list[str], tenant_id: str, thread_id: str
 
     paths = get_paths()
     base = paths.base_dir
-    tenant_dir = os.path.join(base, "tenants", tenant_id, "threads")
+    threads_dir = os.path.join(base, "threads")
 
-    if not os.path.exists(tenant_dir):
+    if not os.path.exists(threads_dir):
         return ""
 
     # Build a lookup of file_id -> metadata
     file_meta_map: dict[str, dict] = {}
-    thread_dirs = [thread_id] if thread_id else os.listdir(tenant_dir)
+    thread_dirs = [thread_id] if thread_id else os.listdir(threads_dir)
 
     for tid in thread_dirs:
-        uploads_dir = os.path.join(tenant_dir, tid, "uploads")
+        uploads_dir = os.path.join(threads_dir, tid, "user-data", "uploads")
         if not os.path.isdir(uploads_dir):
             continue
         for entry in os.listdir(uploads_dir):
