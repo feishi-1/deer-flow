@@ -54,6 +54,71 @@ def _make_error(status_code: int, message: str, error_type: str) -> JSONResponse
     )
 
 
+def _sync_file_ids_to_thread(messages: list, tenant_id: str, thread_id: str) -> None:
+    """Copy files referenced by file_ids into the thread's uploads directory.
+
+    This ensures the agent's uploads_middleware can discover the files
+    at runtime, regardless of which thread they were originally uploaded to.
+    """
+    import json
+    import os
+    import shutil
+
+    from deerflow.config.paths import get_paths
+    from deerflow.runtime.user_context import get_effective_user_id
+
+    # Collect all file_ids from messages
+    all_file_ids: set[str] = set()
+    for msg in messages:
+        if msg.file_ids:
+            all_file_ids.update(msg.file_ids)
+
+    if not all_file_ids:
+        return
+
+    paths = get_paths()
+    user_id = get_effective_user_id()
+
+    # Target: where the agent will look for files
+    target_dir = paths.sandbox_uploads_dir(thread_id, user_id=user_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    # Source: scan all threads for matching file_ids
+    threads_base = os.path.join(str(paths.base_dir), "users", user_id, "threads")
+    if not os.path.exists(threads_base):
+        return
+
+    for tid in os.listdir(threads_base):
+        uploads_dir = os.path.join(threads_base, tid, "user-data", "uploads")
+        if not os.path.isdir(uploads_dir):
+            continue
+        for entry in os.listdir(uploads_dir):
+            if not (entry.startswith(".") and entry.endswith(".meta.json")):
+                continue
+            meta_path = os.path.join(uploads_dir, entry)
+            try:
+                with open(meta_path) as f:
+                    meta = json.load(f)
+            except Exception:
+                continue
+
+            fid = meta.get("id")
+            if fid not in all_file_ids:
+                continue
+            if meta.get("tenant_id") != tenant_id:
+                continue
+
+            # Copy file to target thread if not already there
+            src_file = os.path.join(uploads_dir, meta["filename"])
+            dst_file = os.path.join(str(target_dir), meta["filename"])
+            if not os.path.exists(dst_file) and os.path.exists(src_file):
+                shutil.copy2(src_file, dst_file)
+
+            all_file_ids.discard(fid)
+            if not all_file_ids:
+                return
+
+
 @router.post("/chat/completions")
 async def chat_completions(body: ChatCompletionRequest, request: Request):
     """OpenAI-compatible chat completions endpoint.
@@ -72,6 +137,9 @@ async def chat_completions(body: ChatCompletionRequest, request: Request):
     # Generate IDs
     completion_id = generate_completion_id()
     thread_id = body.thread_id or str(uuid.uuid4())
+
+    # If messages contain file_ids, ensure files are in the thread's uploads dir
+    _sync_file_ids_to_thread(body.messages, tenant.tenant_id, thread_id)
 
     # Convert to DeerFlow run input
     run_input = request_to_run_input(body, tenant_id=tenant.tenant_id)
