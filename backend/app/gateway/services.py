@@ -280,9 +280,12 @@ async def start_run(
         app_config = get_app_config()
         resolved = app_config.get_model_config(model_name)
         if resolved is None:
+            available = [getattr(m, "name", None) or getattr(m, "model", None) for m in getattr(app_config, "models", []) or []]
+            available = [m for m in available if m]
+            hint = f" Available models: {available}" if available else ""
             raise HTTPException(
                 status_code=400,
-                detail=f"Model {model_name!r} is not in the configured model allowlist",
+                detail=f"Model {model_name!r} is not in the configured model allowlist.{hint}",
             )
 
     try:
