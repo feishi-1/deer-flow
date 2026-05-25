@@ -164,6 +164,45 @@ async def init_engine(
 
     logger.info("Persistence engine initialized: backend=%s", backend)
 
+    # Auto-migrate: add missing columns to existing tables.
+    # This handles the case where new columns were added to models
+    # but the database already exists from a previous version.
+    await _auto_add_missing_columns()
+
+
+async def _auto_add_missing_columns() -> None:
+    """Add missing nullable columns to existing tables.
+
+    Inspects the ORM metadata against the actual database schema and
+    issues ALTER TABLE ADD COLUMN for any columns that exist in the
+    model but not in the database. Only handles nullable columns
+    (safe for existing rows).
+    """
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy import text as sa_text
+
+    from deerflow.persistence.base import Base
+
+    if _engine is None:
+        return
+
+    async with _engine.begin() as conn:
+
+        def _sync_migrate(connection):
+            inspector = sa_inspect(connection)
+            for table in Base.metadata.sorted_tables:
+                if not inspector.has_table(table.name):
+                    continue
+                existing_cols = {c["name"] for c in inspector.get_columns(table.name)}
+                for col in table.columns:
+                    if col.name not in existing_cols and col.nullable:
+                        col_type = col.type.compile(dialect=connection.dialect)
+                        sql = f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type}"
+                        connection.execute(sa_text(sql))
+                        logger.info("Auto-migrated: %s", sql)
+
+        await conn.run_sync(_sync_migrate)
+
 
 async def init_engine_from_config(config) -> None:
     """Convenience: init engine from a DatabaseConfig object."""
