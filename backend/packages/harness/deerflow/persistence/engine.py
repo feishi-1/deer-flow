@@ -198,8 +198,12 @@ async def _auto_add_missing_columns() -> None:
                     if col.name not in existing_cols and col.nullable:
                         col_type = col.type.compile(dialect=connection.dialect)
                         sql = f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type}"
-                        connection.execute(sa_text(sql))
-                        logger.info("Auto-migrated: %s", sql)
+                        try:
+                            connection.execute(sa_text(sql))
+                            logger.info("Auto-migrated: %s", sql)
+                        except Exception:
+                            # Column may already exist (race with create_all)
+                            pass
 
         await conn.run_sync(_sync_migrate)
 
