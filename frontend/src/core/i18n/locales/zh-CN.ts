@@ -9,6 +9,8 @@
   VideoIcon,
 } from "lucide-react";
 
+import { branding } from "@/core/config/branding";
+
 import type { Translations } from "./types";
 
 export const zhCN: Translations = {
@@ -243,7 +245,7 @@ export const zhCN: Translations = {
 
   // Page titles (document title)
   pages: {
-    appName: "DeerFlow",
+    appName: branding.name,
     chats: "对话",
     newChat: "新对话",
     untitled: "未命名",

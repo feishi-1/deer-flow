@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { NumberTicker } from "@/components/ui/number-ticker";
+import { branding } from "@/core/config/branding";
 import type { Locale } from "@/core/i18n/locale";
 import { getI18n } from "@/core/i18n/server";
 import { env } from "@/env";
@@ -27,11 +28,11 @@ export async function Header({ className, homeURL, locale }: HeaderProps) {
     >
       <div className="flex items-center gap-6">
         <a
-          href={homeURL ?? "https://github.com/bytedance/deer-flow"}
+          href={homeURL ?? branding.githubUrl}
           target={isExternalHome ? "_blank" : "_self"}
           rel={isExternalHome ? "noopener noreferrer" : undefined}
         >
-          <h1 className="font-serif text-xl">DeerFlow</h1>
+          <h1 className="font-serif text-xl">{branding.name}</h1>
         </a>
       </div>
       <nav className="mr-8 ml-auto flex items-center gap-8 text-sm font-medium">

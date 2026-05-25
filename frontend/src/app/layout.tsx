@@ -4,12 +4,13 @@ import "katex/dist/katex.min.css";
 import { type Metadata } from "next";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { branding } from "@/core/config/branding";
 import { I18nProvider } from "@/core/i18n/context";
 import { detectLocaleServer } from "@/core/i18n/server";
 
 export const metadata: Metadata = {
-  title: "DeerFlow",
-  description: "A LangChain-based framework for building super agents.",
+  title: branding.name,
+  description: branding.description,
 };
 
 export default async function RootLayout({

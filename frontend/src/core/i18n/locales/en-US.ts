@@ -9,6 +9,8 @@ import {
   VideoIcon,
 } from "lucide-react";
 
+import { branding } from "@/core/config/branding";
+
 import type { Translations } from "./types";
 
 export const enUS: Translations = {
@@ -255,7 +257,7 @@ export const enUS: Translations = {
 
   // Page titles (document title)
   pages: {
-    appName: "DeerFlow",
+    appName: branding.name,
     chats: "Chats",
     newChat: "New chat",
     untitled: "Untitled",

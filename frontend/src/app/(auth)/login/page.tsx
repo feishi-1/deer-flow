@@ -10,6 +10,7 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/core/auth/AuthProvider";
 import { parseAuthError } from "@/core/auth/types";
+import { branding } from "@/core/config/branding";
 
 /**
  * Validate next parameter
@@ -132,7 +133,8 @@ export default function LoginPage() {
   return (
     <div className="bg-background relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto">
       <FlickeringGrid
-        className="absolute inset-0 z-0 mask-[url(/images/deer.svg)] mask-size-[100vw] mask-center mask-no-repeat md:mask-size-[72vh]"
+        className="absolute inset-0 z-0 mask-size-[100vw] mask-center mask-no-repeat md:mask-size-[72vh]"
+        style={{ maskImage: `url(${branding.logoPath})` }}
         squareSize={4}
         gridGap={4}
         color={actualTheme === "dark" ? "white" : "black"}
@@ -141,7 +143,9 @@ export default function LoginPage() {
       />
       <div className="border-border/20 bg-background/5 w-full max-w-md space-y-6 rounded-3xl border p-8 backdrop-blur-sm">
         <div className="text-center">
-          <h1 className="text-foreground font-serif text-3xl">DeerFlow</h1>
+          <h1 className="text-foreground font-serif text-3xl">
+            {branding.name}
+          </h1>
           <p className="text-muted-foreground mt-2">
             {isLogin ? "Sign in to your account" : "Create a new account"}
           </p>

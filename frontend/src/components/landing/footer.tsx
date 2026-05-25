@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { branding } from "@/core/config/branding";
 import { cn } from "@/lib/utils";
 
 export type FooterProps = {
@@ -22,8 +23,10 @@ export function Footer({ className }: FooterProps) {
         </p>
       </div>
       <div className="text-muted-foreground container mb-8 flex flex-col items-center justify-center text-xs">
-        <p>Licensed under MIT License</p>
-        <p>&copy; {year} DeerFlow</p>
+        <p>Licensed under {branding.license} License</p>
+        <p>
+          &copy; {year} {branding.copyrightHolder}
+        </p>
       </div>
     </footer>
   );
