@@ -28,6 +28,7 @@ _PUBLIC_PATH_PREFIXES: tuple[str, ...] = (
     "/redoc",
     "/openapi.json",
     "/v1/",  # Third-party API: authenticated by ApiKeyAuthMiddleware instead
+    "/api/v1/auth/sso",  # SSO endpoints (login + providers)
 )
 
 # Exact auth paths that are public (login/register/status check).
@@ -39,8 +40,6 @@ _PUBLIC_EXACT_PATHS: frozenset[str] = frozenset(
         "/api/v1/auth/logout",
         "/api/v1/auth/setup-status",
         "/api/v1/auth/initialize",
-        "/api/v1/auth/sso",
-        "/api/v1/auth/sso/providers",
     }
 )
 
