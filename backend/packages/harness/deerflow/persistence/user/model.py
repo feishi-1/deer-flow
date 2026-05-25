@@ -48,6 +48,11 @@ class UserRow(Base):
     needs_setup: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     token_version: Mapped[int] = mapped_column(nullable=False, default=0)
 
+    # SSO profile fields (populated from external IdP claims)
+    display_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    org_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    external_tenant_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     __table_args__ = (
         Index(
             "idx_users_oauth_identity",

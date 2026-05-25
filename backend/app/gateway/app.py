@@ -391,6 +391,11 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
     # Auth API is mounted at /api/v1/auth
     app.include_router(auth.router)
 
+    # SSO API is mounted at /api/v1/auth/sso
+    from app.gateway.routers import sso as sso_router_module
+
+    app.include_router(sso_router_module.router)
+
     # Feedback API is mounted at /api/threads/{thread_id}/runs/{run_id}/feedback
     app.include_router(feedback.router)
 

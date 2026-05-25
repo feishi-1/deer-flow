@@ -46,6 +46,9 @@ class SQLiteUserRepository(UserRepository):
             oauth_id=row.oauth_id,
             needs_setup=row.needs_setup,
             token_version=row.token_version,
+            display_name=row.display_name,
+            org_name=row.org_name,
+            external_tenant_id=row.external_tenant_id,
         )
 
     @staticmethod
@@ -60,6 +63,9 @@ class SQLiteUserRepository(UserRepository):
             oauth_id=user.oauth_id,
             needs_setup=user.needs_setup,
             token_version=user.token_version,
+            display_name=user.display_name,
+            org_name=user.org_name,
+            external_tenant_id=user.external_tenant_id,
         )
 
     # ── CRUD ──────────────────────────────────────────────────────────

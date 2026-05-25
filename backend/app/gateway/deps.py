@@ -197,6 +197,23 @@ def get_local_provider() -> LocalAuthProvider:
     return _cached_local_provider
 
 
+def get_user_repository() -> SQLiteUserRepository:
+    """Get or create the cached UserRepository singleton.
+
+    Must be called after ``init_engine_from_config()``.
+    """
+    global _cached_repo
+    if _cached_repo is None:
+        from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
+        from deerflow.persistence.engine import get_session_factory
+
+        sf = get_session_factory()
+        if sf is None:
+            raise RuntimeError("get_user_repository() called before init_engine_from_config()")
+        _cached_repo = SQLiteUserRepository(sf)
+    return _cached_repo
+
+
 async def get_current_user_from_request(request: Request):
     """Get the current authenticated user from the request cookie.
 

@@ -31,6 +31,11 @@ class User(BaseModel):
     needs_setup: bool = Field(default=False, description="True when a reset account must complete setup")
     token_version: int = Field(default=0, description="Incremented on password change to invalidate old JWTs")
 
+    # SSO profile fields (populated from external IdP claims)
+    display_name: str | None = Field(None, description="Display name from SSO provider (RealName/NickName)")
+    org_name: str | None = Field(None, description="Organization name from SSO provider")
+    external_tenant_id: str | None = Field(None, description="Tenant ID from external system")
+
 
 class UserResponse(BaseModel):
     """Response model for user info endpoint."""
@@ -39,3 +44,4 @@ class UserResponse(BaseModel):
     email: str
     system_role: Literal["admin", "user"]
     needs_setup: bool = False
+    display_name: str | None = None

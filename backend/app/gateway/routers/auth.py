@@ -379,7 +379,7 @@ async def change_password(request: Request, response: Response, body: ChangePass
 async def get_me(request: Request):
     """Get current authenticated user info."""
     user = await get_current_user_from_request(request)
-    return UserResponse(id=str(user.id), email=user.email, system_role=user.system_role, needs_setup=user.needs_setup)
+    return UserResponse(id=str(user.id), email=user.email, system_role=user.system_role, needs_setup=user.needs_setup, display_name=user.display_name)
 
 
 _SETUP_STATUS_COOLDOWN: dict[str, float] = {}

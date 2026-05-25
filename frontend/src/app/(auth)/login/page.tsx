@@ -56,10 +56,26 @@ export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ssoProviders, setSsoProviders] = useState<
+    {
+      name: string;
+      display_name: string;
+      icon: string;
+      login_url: string | null;
+    }[]
+  >([]);
 
   // Get next parameter for validated redirect
   const nextParam = searchParams.get("next");
   const redirectPath = validateNextParam(nextParam) ?? "/workspace";
+
+  // Fetch SSO providers
+  useEffect(() => {
+    fetch("/api/v1/auth/sso/providers")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setSsoProviders)
+      .catch(() => undefined);
+  }, []);
 
   // Redirect if already authenticated (client-side, post-login)
   useEffect(() => {
@@ -150,6 +166,41 @@ export default function LoginPage() {
             {isLogin ? "Sign in to your account" : "Create a new account"}
           </p>
         </div>
+
+        {ssoProviders.length > 0 && (
+          <div className="space-y-2">
+            {ssoProviders.map((p) => (
+              <Button
+                key={p.name}
+                variant="outline"
+                className="w-full"
+                type="button"
+                onClick={() => {
+                  const ssoUrl = `/api/v1/auth/sso?provider=${encodeURIComponent(p.name)}&next=${encodeURIComponent(redirectPath)}`;
+                  if (p.login_url) {
+                    // Redirect to external login page with callback
+                    const callbackUrl = `${window.location.origin}${ssoUrl}`;
+                    window.location.href = `${p.login_url}${p.login_url.includes("?") ? "&" : "?"}sso_callback=${encodeURIComponent(callbackUrl)}`;
+                  } else {
+                    window.location.href = ssoUrl;
+                  }
+                }}
+              >
+                {p.display_name}
+              </Button>
+            ))}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="border-border w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background text-muted-foreground px-2">
+                  or
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="flex flex-col space-y-1">
