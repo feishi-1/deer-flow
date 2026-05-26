@@ -8,6 +8,7 @@ DeerFlow 提供了完整的第三方 API 接入能力，允许外部应用通过
 
 - [快速开始](#快速开始)
 - [认证方式](#认证方式)
+- [SSO 单点登录](#sso-单点登录)
 - [API 端点](#api-端点)
 - [速率限制与配额](#速率限制与配额)
 - [错误处理](#错误处理)
@@ -82,6 +83,160 @@ Authorization: Bearer sk-YOUR_API_KEY
     "code": "invalid_api_key"
   }
 }
+```
+
+---
+
+## SSO 单点登录
+
+DeerFlow 支持通过 JWT 令牌实现单点登录（SSO），允许外部身份系统（如 Admin.NET）的用户无缝登录。
+
+### 配置
+
+在 `.env` 文件中添加以下环境变量：
+
+```bash
+# 启用 SSO
+SSO_ENABLED=true
+# SSO Provider JWT 签名密钥（HMAC-SHA256）
+SSO_PROVIDER_JWT_SECRET=your-shared-secret-key
+
+# 可选配置
+SSO_PROVIDER_NAME=admin_net              # Provider 标识，默认 admin_net
+SSO_PROVIDER_DISPLAY_NAME=Admin.NET 登录   # 登录页面显示名称
+SSO_PROVIDER_ALGORITHM=HS256             # JWT 签名算法，默认 HS256
+SSO_PROVIDER_AUTO_CREATE_USER=true       # 首次 SSO 登录自动创建用户
+SSO_PROVIDER_DEFAULT_ROLE=user           # 自动创建用户的角色
+SSO_PROVIDER_TOKEN_MAX_AGE=300           # Token 最大有效期（秒）
+SSO_PROVIDER_ICON=building               # 登录页按钮图标
+SSO_PROVIDER_LOGIN_URL=https://admin.example.com/#/login  # 外部登录页 URL
+```
+
+### 端点
+
+#### 1. 获取 SSO Providers
+
+**端点：** `GET /api/v1/auth/sso/providers`
+
+**认证：** 无（公开端点）
+
+**响应：**
+
+```json
+[
+  {
+    "name": "admin_net",
+    "display_name": "Admin.NET 登录",
+    "icon": "building",
+    "login_url": "https://admin.example.com/#/login"
+  }
+]
+```
+
+**说明：** 前端登录页面调用此端点判断是否显示 SSO 登录按钮。
+
+#### 2. SSO 登录（JWT 令牌验证）
+
+**端点：** `GET /api/v1/auth/sso` 或 `POST /api/v1/auth/sso`
+
+**认证：** 需提供有效的 HMAC-SHA256 JWT 令牌
+
+**查询参数（GET）：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `token` | string | 是 | 由外部 IdP 签发的 JWT 令牌 |
+| `next` | string | 否 | 登录成功后跳转的页面，默认 `/workspace` |
+| `provider` | string | 否 | SSO Provider 名称，默认 `admin_net` |
+
+**请求示例：**
+
+```bash
+# 带 JWT 令牌的 SSO 登录跳转
+curl "https://your-deerflow-instance.com/api/v1/auth/sso?token=<JWT_TOKEN>&next=%2Fworkspace"
+```
+
+**响应：**
+
+- **302 Redirect**: 重定向到 `next` 参数指定的页面
+- **Set-Cookie**: 设置 `access_token` 会话 Cookie
+
+**错误响应：**
+
+| HTTP 状态码 | 错误代码 | 说明 |
+|------------|---------|------|
+| 401 | `token_expired` | JWT 已过期 |
+| 401 | `invalid_signature` | JWT 签名无效 |
+| 401 | `token_too_old` | Token 超过有效期（默认 300 秒） |
+| 400 | `unknown_provider` | SSO Provider 未找到 |
+| 403 | `user_not_registered` | 用户未注册且未启用自动创建 |
+
+### JWT 令牌格式
+
+外部 IdP（如 Admin.NET）需要签发包含以下声明的 HMAC-SHA256 JWT：
+
+```json
+{
+  "UserId": "admin001",        // 外部用户 ID（必填）
+  "Account": "zhangsan",        // 用户名/账号（必填）
+  "RealName": "张三",           // 真实姓名
+  "NickName": "小张",           // 昵称
+  "OrgName": "XX 公司",         // 组织名称
+  "OrgId": "org_001",          // 组织 ID
+  "TenantId": "t_001",         // 租户 ID
+  "AccountType": "1",          // 账号类型
+  "LoginMode": "sso",          // 登录模式
+  "iat": 1705300000,           // 签发时间
+  "exp": 1705300300            // 过期时间
+}
+```
+
+**声明映射关系：**
+
+| JWT Claim | DeerFlow 字段 | 说明 |
+|-----------|--------------|------|
+| `UserId` | `oauth_id` | 外部用户唯一标识 |
+| `Account` | `email` (本地部分) | 生成为 `{Account}@sso.deerflow.internal` |
+| `RealName` / `NickName` | `display_name` | 优先使用 RealName，其次 NickName，最后 Account |
+| `OrgName` | `org_name` | 用户所属组织 |
+| `TenantId` | `external_tenant_id` | 外部租户 ID |
+
+### Admin.NET 集成示例
+
+Admin.NET 部署 SSO 时需要以下环境变量：
+
+```bash
+SSO_ENABLED=true
+SSO_PROVIDER_JWT_SECRET=<与 DeerFlow 相同的密钥>
+SSO_PROVIDER_NAME=admin_net
+SSO_PROVIDER_DISPLAY_NAME=Admin.NET 登录
+```
+
+**登录流程：**
+
+1. 用户在 Admin.NET 中登录
+2. Admin.NET 生成包含用户信息的 HMAC-SHA256 JWT
+3. 跳转到 `https://deerflow-instance.com/api/v1/auth/sso?token=<JWT>`
+4. DeerFlow 验证令牌并创建/链接用户
+5. 浏览器被重定向到 DeerFlow 工作区
+
+**JWT 生成示例（Python）：**
+
+```python
+import jwt
+import time
+
+secret = "your-shared-secret-key"
+payload = {
+    "UserId": "admin001",
+    "Account": "zhangsan",
+    "RealName": "张三",
+    "OrgName": "XX 公司",
+    "iat": int(time.time()),
+    "exp": int(time.time()) + 300,
+}
+token = jwt.encode(payload, secret, algorithm="HS256")
+redirect_url = f"https://deerflow-instance.com/api/v1/auth/sso?token={token}"
 ```
 
 ---
@@ -1062,7 +1217,15 @@ print(f"Total requests: {usage['total_requests']}")
 - ✨ 文本文件自动内联到对话上下文
 - ✨ 文件按租户和会话隔离存储
 
+### v1.2.0 (2024-05-26)
+
+- ✨ 新增 SSO 单点登录支持
+- ✨ 支持 HMAC-SHA256 JWT 令牌验证
+- ✨ 自动创建 SSO 用户并映射外部身份属性
+- ✨ 可配置的 SSO Provider 显示名称和图标
+- ✨ 防重放攻击的 Token 有效期限制
+
 ---
 
-**文档版本：** v1.1.0  
-**最后更新：** 2024-01-20
+**文档版本：** v1.2.0  
+**最后更新：** 2024-05-26

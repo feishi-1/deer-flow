@@ -115,7 +115,7 @@ class SSOProvider:
                 )
             # 2. Create new user (no password — SSO only)
             user = User(
-                email=f"{account}@sso.local",
+                email=f"{account}@sso.deerflow.internal",
                 password_hash=None,
                 system_role=config.default_role,
                 oauth_provider=config.name,
