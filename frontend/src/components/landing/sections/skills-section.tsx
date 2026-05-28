@@ -9,14 +9,12 @@ export function SkillsSection({ className }: { className?: string }) {
   return (
     <Section
       className={cn("h-[calc(100vh-64px)] w-full bg-white/2", className)}
-      title="Agent Skills"
+      title="核心能力"
       subtitle={
         <div>
-          Agent Skills are loaded progressively — only what&apos;s needed, when
-          it&apos;s needed.
+          基于大语言模型技术，面向司法场景深度优化，
           <br />
-          Extend DeerFlow with your own skill files, or use our built-in
-          library.
+          提供全方位的智能化法律辅助能力
         </div>
       }
     >

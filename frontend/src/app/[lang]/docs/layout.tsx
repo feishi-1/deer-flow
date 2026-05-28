@@ -35,7 +35,6 @@ export default async function DocLayout({ children, params }) {
       navbar={
         <Header
           className="sticky max-w-full px-10"
-          homeURL="/"
           locale={locale}
         />
       }

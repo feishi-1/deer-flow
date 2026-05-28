@@ -28,6 +28,12 @@ const config = {
       "http://127.0.0.1:8001",
     );
 
+    // SSO providers: internal proxy to gateway (bypasses Docker Desktop proxy)
+    rewrites.push({
+      source: "/sso-config",
+      destination: "http://gateway:8001/api/v1/auth/sso/providers",
+    });
+
     if (!process.env.NEXT_PUBLIC_LANGGRAPH_BASE_URL) {
       rewrites.push({
         source: "/api/langgraph",

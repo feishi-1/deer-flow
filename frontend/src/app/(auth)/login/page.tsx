@@ -69,11 +69,15 @@ export default function LoginPage() {
   const nextParam = searchParams.get("next");
   const redirectPath = validateNextParam(nextParam) ?? "/workspace";
 
-  // Fetch SSO providers
+  // Fetch SSO providers from config via internal proxy
   useEffect(() => {
-    fetch("/api/v1/auth/sso/providers")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setSsoProviders)
+    fetch("/sso-config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && data.length > 0) {
+          setSsoProviders(data);
+        }
+      })
       .catch(() => undefined);
   }, []);
 

@@ -10,7 +10,7 @@ export default async function BlogLayout({ children }) {
 
   return (
     <Layout
-      navbar={<Header className="relative max-w-full px-10" homeURL="/" />}
+      navbar={<Header className="relative max-w-full px-10" />}
       pageMap={pageMap}
       sidebar={{ defaultOpen: true }}
       docsRepositoryBase="https://github.com/bytedance/deerflow/tree/main/frontend/src/content"

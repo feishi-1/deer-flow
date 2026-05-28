@@ -9,42 +9,39 @@ const COLOR = "#0a0a0a";
 const features: BentoCardProps[] = [
   {
     color: COLOR,
-    label: "Context Engineering",
-    title: "Long/Short-term Memory",
-    description: "Now the agent can better understand you",
+    label: "智能",
+    title: "智能问答",
+    description: "基于大模型的精准法律问答，支持多轮深度对话",
   },
   {
     color: COLOR,
-    label: "Long Task Running",
-    title: "Planning and Sub-tasking",
-    description:
-      "Plans ahead, reasons through complexity, then executes sequentially or in parallel",
+    label: "知识",
+    title: "知识管理",
+    description: "法律法规、案例判例的结构化知识库管理",
   },
   {
     color: COLOR,
-    label: "Extensible",
-    title: "Skills and Tools",
-    description:
-      "Plug, play, or even swap built-in tools. Build the agent you want.",
-  },
-
-  {
-    color: COLOR,
-    label: "Persistent",
-    title: "Sandbox with File System",
-    description: "Read, write, run — like a real computer",
+    label: "安全",
+    title: "权限控制",
+    description: "基于角色的细粒度权限管理，保障数据安全",
   },
   {
     color: COLOR,
-    label: "Flexible",
-    title: "Multi-Model Support",
-    description: "Doubao, DeepSeek, OpenAI, Gemini, etc.",
+    label: "灵活",
+    title: "多模型支持",
+    description: "兼容主流大语言模型，灵活切换与配置",
   },
   {
     color: COLOR,
-    label: "Free",
-    title: "Open Source",
-    description: "MIT License, self-hosted, full control",
+    label: "部署",
+    title: "私有化部署",
+    description: "数据不出内网，满足政企安全合规要求",
+  },
+  {
+    color: COLOR,
+    label: "更新",
+    title: "持续更新",
+    description: "法律法规知识库定期维护，保持时效性",
   },
 ];
 
@@ -52,8 +49,8 @@ export function WhatsNewSection({ className }: { className?: string }) {
   return (
     <Section
       className={cn("", className)}
-      title="Whats New in DeerFlow 2.0"
-      subtitle="DeerFlow is now evolving from a Deep Research agent into a full-stack Super Agent"
+      title="系统特性"
+      subtitle="专为司法场景设计的全方位 AI 能力平台"
     >
       <div className="flex w-full items-center justify-center">
         <MagicBento data={features} />

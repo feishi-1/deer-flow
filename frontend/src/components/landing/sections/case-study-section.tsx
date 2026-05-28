@@ -1,97 +1,83 @@
-import Link from "next/link";
-
 import { Card } from "@/components/ui/card";
-import { pathOfThread } from "@/core/threads/utils";
 import { cn } from "@/lib/utils";
 
 import { Section } from "../section";
 
 export function CaseStudySection({ className }: { className?: string }) {
-  const caseStudies = [
+  const scenarios = [
     {
-      threadId: "7cfa5f8f-a2f8-47ad-acbd-da7137baf990",
-      title: "Forecast 2026 Agent Trends and Opportunities",
+      title: "法规智能检索",
       description:
-        "Create a webpage with a Deep Research report forecasting the agent technology trends and opportunities in 2026.",
+        "快速查找法律法规、司法解释，精准定位相关条款，提升法规查阅效率",
     },
     {
-      threadId: "4f3e55ee-f853-43db-bfb3-7d1a411f03cb",
-      title: 'Generate a Video Based On the Novel "Pride and Prejudice"',
+      title: "案件智能分析",
       description:
-        'Search the specific scene from the novel "Pride and Prejudice", then generate a video as well as a reference image based on the scenes.',
+        "自动梳理案件事实，提取关键要素与争议焦点，辅助判案决策",
     },
     {
-      threadId: "21cfea46-34bd-4aa6-9e1f-3009452fbeb9",
-      title: "Doraemon Explains the MOE Architecture",
+      title: "法律文书生成",
       description:
-        "Generate a Doraemon comic strip explaining the MOE architecture to the teenagers who are interested in AI.",
+        "一键生成起诉书、判决书、调解书等法律文书，减少重复劳动",
     },
     {
-      threadId: "ad76c455-5bf9-4335-8517-fc03834ab828",
-      title: "An Exploratory Data Analysis of the Titanic Dataset",
+      title: "合同智能审查",
       description:
-        "Explore the Titanic dataset and identify the key factors that influenced survival rates with visualizations and insights.",
+        "自动审查合同条款，识别法律风险点，提供专业修改建议",
     },
     {
-      threadId: "d3e5adaf-084c-4dd5-9d29-94f1d6bccd98",
-      title: "Watch Y Combinator's Video then Conduct a Deep Research",
+      title: "法律知识问答",
       description:
-        "Watch the given Y Combinator's YouTube video and conduct a deep research on the YC's tips for technical startup founders.",
+        "解答各类法律专业问题，提供法条依据与相关判例参考",
     },
     {
-      threadId: "3823e443-4e2b-4679-b496-a9506eae462b",
-      title: "Collect and Summarize Dr. Fei Fei Li's Podcasts",
+      title: "智能风险预警",
       description:
-        "Collect all the podcast appearances of Dr. Fei Fei Li in the last 6 months, then summarize them into a comprehensive report.",
+        "基于大数据分析，识别潜在法律风险，提前预警并提供应对方案",
     },
   ];
+
   return (
     <Section
       className={className}
-      title="Case Studies"
-      subtitle="See how DeerFlow is used in the wild"
+      title="应用场景"
+      subtitle="覆盖司法工作全流程的智能化应用"
     >
       <div className="container-md mt-8 grid grid-cols-1 gap-4 px-4 md:grid-cols-2 md:px-20 lg:grid-cols-3">
-        {caseStudies.map((caseStudy) => (
-          <Link
-            key={caseStudy.title}
-            href={pathOfThread(caseStudy.threadId) + "?mock=true"}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Card className="group/card relative h-64 overflow-hidden">
+        {scenarios.map((scenario) => (
+          <Card key={scenario.title} className="group/card relative h-64 overflow-hidden">
+            <div
+              className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 group-hover/card:scale-110 group-hover/card:brightness-90"
+              style={{
+                background:
+                  "linear-gradient(135deg, #1e3a5f 0%, #2d1b69 50%, #1a1a2e 100%)",
+              }}
+            />
+            <div
+              className={cn(
+                "flex h-full w-full translate-y-[calc(100%-60px)] flex-col items-center",
+                "transition-all duration-300",
+                "group-hover/card:translate-y-[calc(100%-128px)]",
+              )}
+            >
               <div
-                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 group-hover/card:scale-110 group-hover/card:brightness-90"
+                className="flex w-full flex-col p-4"
                 style={{
-                  backgroundImage: `url(/images/${caseStudy.threadId}.jpg)`,
+                  background:
+                    "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 100%)",
                 }}
-              ></div>
-              <div
-                className={cn(
-                  "flex h-full w-full translate-y-[calc(100%-60px)] flex-col items-center",
-                  "transition-all duration-300",
-                  "group-hover/card:translate-y-[calc(100%-128px)]",
-                )}
               >
-                <div
-                  className="flex w-full flex-col p-4"
-                  style={{
-                    background:
-                      "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 100%)",
-                  }}
-                >
-                  <div className="flex flex-col gap-2">
-                    <h3 className="flex h-14 items-center text-xl font-bold text-shadow-black">
-                      {caseStudy.title}
-                    </h3>
-                    <p className="box-shadow-black overflow-hidden text-sm text-white/85 text-shadow-black">
-                      {caseStudy.description}
-                    </p>
-                  </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="flex h-14 items-center text-xl font-bold text-shadow-black">
+                    {scenario.title}
+                  </h3>
+                  <p className="box-shadow-black overflow-hidden text-sm text-white/85 text-shadow-black">
+                    {scenario.description}
+                  </p>
                 </div>
               </div>
-            </Card>
-          </Link>
+            </div>
+          </Card>
         ))}
       </div>
     </Section>

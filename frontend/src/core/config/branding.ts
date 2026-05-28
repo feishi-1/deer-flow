@@ -43,31 +43,24 @@ export interface BrandingConfig {
   tagline: string;
 }
 
-function getEnv(key: string): string | undefined {
-  if (typeof process !== "undefined" && process.env) {
-    return process.env[key];
-  }
-  return undefined;
-}
-
 export const branding: BrandingConfig = {
-  name: getEnv("NEXT_PUBLIC_APP_NAME") ?? "DeerFlow",
-  shortName: getEnv("NEXT_PUBLIC_APP_SHORT_NAME") ?? "DF",
+  name: process.env.NEXT_PUBLIC_APP_NAME || "DeerFlow",
+  shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME || "DF",
   description:
-    getEnv("NEXT_PUBLIC_APP_DESCRIPTION") ??
+    process.env.NEXT_PUBLIC_APP_DESCRIPTION ||
     "A LangChain-based framework for building super agents.",
-  logoPath: getEnv("NEXT_PUBLIC_APP_LOGO_PATH") ?? "/images/deer.svg",
-  faviconPath: getEnv("NEXT_PUBLIC_APP_FAVICON") ?? "/favicon.ico",
-  websiteUrl: getEnv("NEXT_PUBLIC_APP_URL") ?? "https://deerflow.tech/",
+  logoPath: process.env.NEXT_PUBLIC_APP_LOGO_PATH || "/images/deer.svg",
+  faviconPath: process.env.NEXT_PUBLIC_APP_FAVICON || "/favicon.ico",
+  websiteUrl: process.env.NEXT_PUBLIC_APP_URL || "https://deerflow.tech/",
   githubUrl:
-    getEnv("NEXT_PUBLIC_APP_GITHUB_URL") ??
+    process.env.NEXT_PUBLIC_APP_GITHUB_URL ||
     "https://github.com/bytedance/deer-flow",
   issuesUrl:
-    getEnv("NEXT_PUBLIC_APP_ISSUES_URL") ??
+    process.env.NEXT_PUBLIC_APP_ISSUES_URL ||
     "https://github.com/bytedance/deer-flow/issues",
   supportEmail:
-    getEnv("NEXT_PUBLIC_APP_SUPPORT_EMAIL") ?? "support@deerflow.tech",
-  copyrightHolder: getEnv("NEXT_PUBLIC_APP_COPYRIGHT") ?? "DeerFlow",
+    process.env.NEXT_PUBLIC_APP_SUPPORT_EMAIL || "support@deerflow.tech",
+  copyrightHolder: process.env.NEXT_PUBLIC_APP_COPYRIGHT || "DeerFlow",
   license: "MIT",
-  tagline: getEnv("NEXT_PUBLIC_APP_TAGLINE") ?? "Open Source Super Agent",
+  tagline: process.env.NEXT_PUBLIC_APP_TAGLINE || "Open Source Super Agent",
 };
